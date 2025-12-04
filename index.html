@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generatore FIT - Peso per Garmin Connect</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        body {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        h1 {
+            color: #007acc;
+            text-align: center;
+            margin-bottom: 5px;
+        }
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .form-group.required {
+            border-left: 4px solid #007acc;
+        }
+        .form-group.optional {
+            border-left: 4px solid #28a745;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #333;
+        }
+        label small {
+            font-weight: normal;
+            color: #666;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        input:focus {
+            outline: none;
+            border-color: #007acc;
+        }
+        .section-title {
+            font-weight: bold;
+            color: #007acc;
+            margin: 20px 0 10px 0;
+            padding-bottom: 5px;
+            border-bottom: 2px solid #007acc;
+        }
+        button {
+            width: 100%;
+            padding: 15px;
+            background: #007acc;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 18px;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+        button:hover {
+            background: #005a9e;
+        }
+        .info {
+            background: #e7f3ff;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        .info ul {
+            margin: 10px 0 0 0;
+            padding-left: 20px;
+        }
+        .legend {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 15px;
+            font-size: 14px;
+        }
+        .legend span {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .legend .req {
+            width: 12px;
+            height: 12px;
+            background: #007acc;
+            border-radius: 2px;
+        }
+        .legend .opt {
+            width: 12px;
+            height: 12px;
+            background: #28a745;
+            border-radius: 2px;
+        }
+    </style>
+</head>
+<body>
+    <h1>⚖️ Generatore FIT</h1>
+    <p class="subtitle">Crea file .FIT per importare peso in Garmin Connect</p>
+    
+    <div class="info">
+        <strong>Istruzioni:</strong>
+        <ul>
+            <li>Compila i campi (solo Data e Peso sono obbligatori)</li>
+            <li>Clicca "Genera File FIT"</li>
+            <li>Importa il file su <a href="https://connect.garmin.com/modern/import-data" target="_blank">Garmin Connect</a></li>
+        </ul>
+    </div>
+
+    <div class="legend">
+        <span><div class="req"></div> Obbligatorio</span>
+        <span><div class="opt"></div> Opzionale</span>
+    </div>
+
+    <div class="section-title">📅 Data e Ora</div>
+    
+    <div class="form-group required">
+        <label>Data <small>(obbligatorio)</small></label>
+        <input type="date" id="date" required>
+    </div>
+    
+    <div class="form-group optional">
+        <label>Ora <small>(default: 08:00)</small></label>
+        <input type="time" id="time" value="08:00">
+    </div>
+
+    <div class="section-title">📊 Dati Base</div>
+    
+    <div class="form-group required">
+        <label>Peso (kg) <small>(obbligatorio)</small></label>
+        <input type="number" id="weight" step="0.01" placeholder="es: 75.65" required>
+    </div>
+    
+    <div class="form-group optional">
+        <label>Grasso Corporeo (%)</label>
+        <input type="number" id="bodyFat" step="0.1" placeholder="es: 13.5">
+    </div>
+
+    <div class="section-title">💪 Composizione Corporea</div>
+    
+    <div class="form-group optional">
+        <label>Massa Muscolare (kg)</label>
+        <input type="number" id="muscleMass" step="0.1" placeholder="es: 62.2">
+    </div>
+    
+    <div class="form-group optional">
+        <label>Massa Ossea (kg)</label>
+        <input type="number" id="boneMass" step="0.01" placeholder="es: 3.27">
+    </div>
+    
+    <div class="form-group optional">
+        <label>Acqua Corporea (%)</label>
+        <input type="number" id="bodyWater" step="0.1" placeholder="es: 62.5">
+    </div>
+
+    <div class="section-title">🔬 Altri Parametri</div>
+    
+    <div class="form-group optional">
+        <label>Grasso Viscerale <small>(indice 1-59)</small></label>
+        <input type="number" id="visceralFat" min="1" max="59" placeholder="es: 7">
+    </div>
+    
+    <div class="form-group optional">
+        <label>Età Metabolica <small>(anni)</small></label>
+        <input type="number" id="metabolicAge" min="1" max="99" placeholder="es: 34">
+    </div>
+
+    <button onclick="generateFIT()">📥 Genera File FIT</button>
+
+    <script>
+        // Set default date to today
+        document.getElementById('date').valueAsDate = new Date();
+
+        // FIT file constants
+        const FIT_EPOCH = new Date(Date.UTC(1989, 11, 31, 0, 0, 0));
+
+        function fitTimestamp(date) {
+            return Math.floor((date.getTime() - FIT_EPOCH.getTime()) / 1000);
+        }
+
+        function crc16(data) {
+            const crcTable = [
+                0x0000, 0xCC01, 0xD801, 0x1400, 0xF001, 0x3C00, 0x2800, 0xE401,
+                0xA001, 0x6C00, 0x7800, 0xB401, 0x5000, 0x9C01, 0x8801, 0x4400
+            ];
+            let crc = 0;
+            for (let i = 0; i < data.length; i++) {
+                const byte = data[i];
+                let tmp = crcTable[crc & 0xF];
+                crc = (crc >> 4) & 0x0FFF;
+                crc = crc ^ tmp ^ crcTable[byte & 0xF];
+                tmp = crcTable[crc & 0xF];
+                crc = (crc >> 4) & 0x0FFF;
+                crc = crc ^ tmp ^ crcTable[(byte >> 4) & 0xF];
+            }
+            return crc;
+        }
+
+        function generateFIT() {
+            // Get values
+            const dateStr = document.getElementById('date').value;
+            const timeStr = document.getElementById('time').value || '08:00';
+            const weight = parseFloat(document.getElementById('weight').value);
+            const bodyFat = parseFloat(document.getElementById('bodyFat').value) || null;
+            const muscleMass = parseFloat(document.getElementById('muscleMass').value) || null;
+            const boneMass = parseFloat(document.getElementById('boneMass').value) || null;
+            const bodyWater = parseFloat(document.getElementById('bodyWater').value) || null;
+            const visceralFat = parseInt(document.getElementById('visceralFat').value) || null;
+            const metabolicAge = parseInt(document.getElementById('metabolicAge').value) || null;
+
+            // Validate required fields
+            if (!dateStr || isNaN(weight)) {
+                alert('Inserisci almeno Data e Peso!');
+                return;
+            }
+
+            // Create timestamp
+            const [year, month, day] = dateStr.split('-').map(Number);
+            const [hours, minutes] = timeStr.split(':').map(Number);
+            const timestamp = new Date(year, month - 1, day, hours, minutes, 0);
+            const fitTs = fitTimestamp(timestamp);
+
+            // Build records
+            const records = [];
+
+            // FILE ID MESSAGE (Message 0)
+            records.push(0x40, 0x00, 0x00);
+            records.push(0x00, 0x00); // Global message: file_id
+            records.push(4); // Number of fields
+            records.push(0, 1, 0);    // type: enum
+            records.push(1, 2, 132);  // manufacturer: uint16
+            records.push(2, 2, 132);  // product: uint16
+            records.push(3, 4, 134);  // serial_number: uint32z
+
+            // File ID data
+            records.push(0x00);
+            records.push(4); // type = weight
+            records.push(1, 0); // manufacturer = Garmin (little endian)
+            records.push(1, 0); // product
+            records.push(0x39, 0x30, 0x00, 0x00); // serial_number
+
+            // WEIGHT SCALE MESSAGE (Message 30)
+            // Count fields
+            let numFields = 2; // timestamp + weight always
+            if (bodyFat !== null) numFields++;
+            if (bodyWater !== null) numFields++;
+            if (boneMass !== null) numFields++;
+            if (muscleMass !== null) numFields++;
+            if (metabolicAge !== null) numFields++;
+            if (visceralFat !== null) numFields++;
+
+            records.push(0x41, 0x00, 0x00);
+            records.push(30, 0); // Global message: weight_scale (little endian)
+            records.push(numFields);
+
+            // Field definitions
+            records.push(253, 4, 134); // timestamp
+            records.push(0, 2, 132);   // weight
+
+            if (bodyFat !== null) records.push(1, 2, 132);      // percent_fat
+            if (bodyWater !== null) records.push(2, 2, 132);    // percent_hydration
+            if (boneMass !== null) records.push(4, 2, 132);     // bone_mass
+            if (muscleMass !== null) records.push(5, 2, 132);   // muscle_mass
+            if (metabolicAge !== null) records.push(10, 1, 2);  // metabolic_age
+            if (visceralFat !== null) records.push(11, 1, 2);   // visceral_fat_rating
+
+            // Data message
+            records.push(0x01);
+            
+            // Timestamp (4 bytes, little endian)
+            records.push(fitTs & 0xFF);
+            records.push((fitTs >> 8) & 0xFF);
+            records.push((fitTs >> 16) & 0xFF);
+            records.push((fitTs >> 24) & 0xFF);
+
+            // Weight (scale 100)
+            const weightVal = Math.round(weight * 100);
+            records.push(weightVal & 0xFF);
+            records.push((weightVal >> 8) & 0xFF);
+
+            // Body fat (scale 100)
+            if (bodyFat !== null) {
+                const fatVal = Math.round(bodyFat * 100);
+                records.push(fatVal & 0xFF);
+                records.push((fatVal >> 8) & 0xFF);
+            }
+
+            // Body water (scale 100)
+            if (bodyWater !== null) {
+                const waterVal = Math.round(bodyWater * 100);
+                records.push(waterVal & 0xFF);
+                records.push((waterVal >> 8) & 0xFF);
+            }
+
+            // Bone mass (scale 100)
+            if (boneMass !== null) {
+                const boneVal = Math.round(boneMass * 100);
+                records.push(boneVal & 0xFF);
+                records.push((boneVal >> 8) & 0xFF);
+            }
+
+            // Muscle mass (scale 100)
+            if (muscleMass !== null) {
+                const muscleVal = Math.round(muscleMass * 100);
+                records.push(muscleVal & 0xFF);
+                records.push((muscleVal >> 8) & 0xFF);
+            }
+
+            // Metabolic age
+            if (metabolicAge !== null) {
+                records.push(metabolicAge & 0xFF);
+            }
+
+            // Visceral fat rating
+            if (visceralFat !== null) {
+                records.push(visceralFat & 0xFF);
+            }
+
+            // Calculate data size
+            const dataSize = records.length;
+
+            // Create header (14 bytes)
+            const header = [];
+            header.push(14);       // Header size
+            header.push(20);       // Protocol version (2.0)
+            header.push(0x3E, 0x08); // Profile version (21.10, little endian)
+            header.push(dataSize & 0xFF);
+            header.push((dataSize >> 8) & 0xFF);
+            header.push((dataSize >> 16) & 0xFF);
+            header.push((dataSize >> 24) & 0xFF);
+            header.push(0x2E, 0x46, 0x49, 0x54); // .FIT
+
+            // Header CRC
+            const headerCrc = crc16(new Uint8Array(header.slice(0, 12)));
+            header.push(headerCrc & 0xFF);
+            header.push((headerCrc >> 8) & 0xFF);
+
+            // Combine header and records
+            const fitData = [...header, ...records];
+
+            // Data CRC
+            const dataCrc = crc16(new Uint8Array(fitData));
+            fitData.push(dataCrc & 0xFF);
+            fitData.push((dataCrc >> 8) & 0xFF);
+
+            // Create file and download
+            const blob = new Blob([new Uint8Array(fitData)], { type: 'application/octet-stream' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            
+            // Format filename
+            const dateFormatted = dateStr.replace(/-/g, '');
+            a.download = `weight_${dateFormatted}.fit`;
+            
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            alert(`File generato: weight_${dateFormatted}.fit\n\nImportalo su Garmin Connect!`);
+        }
+    </script>
+</body>
+</html>
