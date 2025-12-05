@@ -3,14 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Generatore FIT - Peso per Garmin Connect</title>
+    <title>Generatore FIT - Peso per Garmin Connect v2</title>
     <style>
+        /* CSS basato sulla versione precedente */
         * {
             box-sizing: border-box;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         }
         body {
-            max-width: 600px;
+            max-width: 600px; /* ADEGUATO AL VECCHIO STILE (da 650px a 600px) */
             margin: 0 auto;
             padding: 20px;
             background: #f5f5f5;
@@ -25,6 +26,12 @@
             color: #666;
             margin-bottom: 20px;
         }
+        .version {
+            text-align: center;
+            color: #28a745;
+            font-size: 12px;
+            margin-bottom: 15px;
+        }
         .form-group {
             margin-bottom: 15px;
             background: white;
@@ -32,11 +39,24 @@
             border-radius: 8px;
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
+        /* Indicatori a sinistra */
         .form-group.required {
             border-left: 4px solid #007acc;
         }
         .form-group.optional {
             border-left: 4px solid #28a745;
+        }
+        .form-group.calculated {
+            border-left: 4px solid #ffc107; /* Nuovo stile per i campi calcolati */
+            background: #fffef0;
+        }
+        .form-row {
+            display: flex;
+            gap: 15px;
+        }
+        .form-row .form-group {
+            flex: 1;
+            margin-bottom: 0;
         }
         label {
             display: block;
@@ -48,14 +68,14 @@
             font-weight: normal;
             color: #666;
         }
-        input {
+        input, select { /* Inclusione di 'select' */
             width: 100%;
             padding: 10px;
             border: 1px solid #ddd;
             border-radius: 4px;
             font-size: 16px;
         }
-        input:focus {
+        input:focus, select:focus {
             outline: none;
             border-color: #007acc;
         }
@@ -76,9 +96,17 @@
             font-size: 18px;
             cursor: pointer;
             margin-top: 20px;
+            transition: background 0.2s;
         }
         button:hover {
             background: #005a9e;
+        }
+        button.secondary {
+            background: #28a745; /* Bottone per ricalcolo */
+            margin-top: 10px;
+        }
+        button.secondary:hover {
+            background: #1e7e34;
         }
         .info {
             background: #e7f3ff;
@@ -86,6 +114,7 @@
             border-radius: 8px;
             margin-bottom: 20px;
             font-size: 14px;
+            /* Rimosso il bordo per coerenza con la tua versione precedente */
         }
         .info ul {
             margin: 10px 0 0 0;
@@ -93,9 +122,10 @@
         }
         .legend {
             display: flex;
-            gap: 20px;
+            gap: 20px; /* ADEGUATO AL VECCHIO STILE (da 15px a 20px) */
             margin-bottom: 15px;
             font-size: 14px;
+            flex-wrap: wrap;
         }
         .legend span {
             display: flex;
@@ -114,87 +144,383 @@
             background: #28a745;
             border-radius: 2px;
         }
+        /* Nuovo elemento per la legenda v2 */
+        .legend .calc {
+            width: 12px;
+            height: 12px;
+            background: #ffc107;
+            border-radius: 2px;
+        }
+        /* Stili per la griglia Physique Rating (nuove funzionalità) */
+        .physique-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 3px;
+            margin: 15px 0;
+            font-size: 11px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .physique-grid .cell {
+            padding: 8px 4px;
+            text-align: center;
+            background: #f9f9f9;
+            border-bottom: 1px solid #eee;
+            border-right: 1px solid #eee;
+            line-height: 1.3;
+        }
+        .physique-grid .cell:nth-child(4n) {
+            border-right: none;
+        }
+        .physique-grid .cell.active {
+            background: #007acc;
+            color: white;
+            font-weight: bold;
+            box-shadow: inset 0 0 0 2px #ffeb3b;
+        }
+        .physique-grid .header, .physique-grid .row-header {
+            background: #444;
+            color: white;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-bottom: 2px solid #000;
+        }
+        .physique-grid .row-header {
+             background: #666;
+        }
+        .calc-result {
+            background: #d4edda;
+            color: #155724;
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 10px;
+            font-size: 13px;
+            border: 1px solid #c3e6cb;
+        }
+        .calc-result.warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeeba;
+        }
+        .hidden {
+            display: none;
+        }
     </style>
 </head>
 <body>
-    <h1>⚖️ Generatore FIT</h1>
+    <h1>⚖️ Generatore FIT v2</h1>
     <p class="subtitle">Crea file .FIT per importare peso in Garmin Connect</p>
+    <p class="version">✨ Aggiornato: Calcolo automatico Physique Rating</p>
     
     <div class="info">
         <strong>Istruzioni:</strong>
         <ul>
-            <li>Compila i campi (solo Data e Peso sono obbligatori)</li>
-            <li>Clicca "Genera File FIT"</li>
-            <li>Importa il file su <a href="https://connect.garmin.com/modern/import-data" target="_blank">Garmin Connect</a></li>
+            <li>Compila i dati personali per abilitare il **calcolo automatico** di *Physique Rating*</li>
+            <li>Il **Physique Rating** viene calcolato da **Body Fat %** e **Massa Muscolare**</li>
+            <li>Clicca "**Genera File FIT**" e importa su <a href="https://connect.garmin.com/modern/import-data" target="_blank">Garmin Connect</a></li>
         </ul>
     </div>
 
     <div class="legend">
         <span><div class="req"></div> Obbligatorio</span>
         <span><div class="opt"></div> Opzionale</span>
+        <span><div class="calc"></div> Auto-calcolato</span>
     </div>
+
+    ---
+
+    <div class="section-title">👤 Dati Personali (per calcolo automatico)</div>
+    
+    <div class="form-row">
+        <div class="form-group optional">
+            <label>Sesso</label>
+            <select id="gender" onchange="updatePhysiqueRating()">
+                <option value="">-- Seleziona --</option>
+                <option value="M" selected>Maschio</option>
+                <option value="F">Femmina</option>
+            </select>
+        </div>
+        
+        <div class="form-group optional">
+            <label>Età <small>(anni)</small></label>
+            <input type="number" id="age" min="18" max="99" value="36" placeholder="es: 40" onchange="updatePhysiqueRating()">
+        </div>
+        
+        <div class="form-group optional">
+            <label>Altezza <small>(cm)</small></label>
+            <input type="number" id="height" min="100" max="250" value="175" placeholder="es: 175" onchange="updatePhysiqueRating()">
+        </div>
+    </div>
+
+    ---
 
     <div class="section-title">📅 Data e Ora</div>
     
-    <div class="form-group required">
-        <label>Data <small>(obbligatorio)</small></label>
-        <input type="date" id="date" required>
+    <div class="form-row">
+        <div class="form-group required">
+            <label>Data <small>(obbligatorio)</small></label>
+            <input type="date" id="date" required>
+        </div>
+        
+        <div class="form-group optional">
+            <label>Ora <small>(default: 08:00)</small></label>
+            <input type="time" id="time" value="08:00">
+        </div>
     </div>
-    
-    <div class="form-group optional">
-        <label>Ora <small>(default: 08:00)</small></label>
-        <input type="time" id="time" value="08:00">
-    </div>
+
+    ---
 
     <div class="section-title">📊 Dati Base</div>
     
     <div class="form-group required">
         <label>Peso (kg) <small>(obbligatorio)</small></label>
-        <input type="number" id="weight" step="0.01" placeholder="es: 75.65" required>
+        <input type="number" id="weight" step="0.01" value="76.8" placeholder="es: 75.65" required>
     </div>
     
     <div class="form-group optional">
-        <label>Grasso Corporeo (%)</label>
-        <input type="number" id="bodyFat" step="0.1" placeholder="es: 13.5">
+        <label>Grasso Corporeo (%) <small>- usato per Physique Rating</small></label>
+        <input type="number" id="bodyFat" step="0.1" value="13.8" placeholder="es: 13.5" onchange="updatePhysiqueRating()">
     </div>
+
+    ---
 
     <div class="section-title">💪 Composizione Corporea</div>
     
     <div class="form-group optional">
-        <label>Massa Muscolare (kg)</label>
-        <input type="number" id="muscleMass" step="0.1" placeholder="es: 62.2">
+        <label>Massa Muscolare (kg) <small>- usata per Physique Rating</small></label>
+        <input type="number" id="muscleMass" step="0.1" value="62.9" placeholder="es: 62.2" onchange="updatePhysiqueRating()">
     </div>
     
     <div class="form-group optional">
         <label>Massa Ossea (kg)</label>
-        <input type="number" id="boneMass" step="0.01" placeholder="es: 3.27">
+        <input type="number" id="boneMass" step="0.01" value="3.3" placeholder="es: 3.27">
     </div>
     
     <div class="form-group optional">
         <label>Acqua Corporea (%)</label>
-        <input type="number" id="bodyWater" step="0.1" placeholder="es: 62.5">
+        <input type="number" id="bodyWater" step="0.1" value="62.2" placeholder="es: 62.5">
     </div>
+
+    ---
 
     <div class="section-title">🔬 Altri Parametri</div>
     
     <div class="form-group optional">
         <label>Grasso Viscerale <small>(indice 1-59)</small></label>
-        <input type="number" id="visceralFat" min="1" max="59" placeholder="es: 7">
-    </div>
+        <input type="number" id="visceralFat" min="1" max="59" value="7" placeholder="es: 7">
+        </div>
     
     <div class="form-group optional">
         <label>Età Metabolica <small>(anni)</small></label>
-        <input type="number" id="metabolicAge" min="1" max="99" placeholder="es: 34">
+        <input type="number" id="metabolicAge" min="1" max="99" value="36" placeholder="es: 34">
     </div>
 
+    ---
+
+    <div class="section-title">🎯 Physique Rating (Valutazione Fisica)</div>
+    
+    <div class="form-group calculated">
+        <label>Physique Rating <small>(1-9, calcolato automaticamente o inserisci manualmente)</small></label>
+        <input type="number" id="physiqueRating" min="1" max="9" placeholder="Auto-calcolato...">
+        <div id="physiqueCalcResult" class="calc-result hidden"></div>
+    </div>
+    
+    <div id="physiqueGridContainer" class="hidden">
+        <p style="font-size: 12px; color: #666; margin-bottom: 5px;"><strong>Griglia Physique Rating:</strong> (Riferimento basato su bilance Tanita)</p>
+        <div class="physique-grid">
+            <div class="cell header">Muscoli / Grasso</div>
+            <div class="cell header">Muscoli<br>Bassi (0)</div>
+            <div class="cell header">Muscoli<br>Medi (1)</div>
+            <div class="cell header">Muscoli<br>Alti (2)</div>
+            
+            <div class="cell row-header">Grasso<br>Alto (0)</div>
+            <div class="cell" id="cell-1">1<br>Hidden Obese</div>
+            <div class="cell" id="cell-2">2<br>Obese</div>
+            <div class="cell" id="cell-3">3<br>Solidly Built</div>
+            
+            <div class="cell row-header">Grasso<br>Medio (1)</div>
+            <div class="cell" id="cell-4">4<br>Under-exercised</div>
+            <div class="cell" id="cell-5">5<br>Standard</div>
+            <div class="cell" id="cell-6">6<br>Std Muscular</div>
+            
+            <div class="cell row-header">Grasso<br>Basso (2)</div>
+            <div class="cell" id="cell-7">7<br>Thin</div>
+            <div class="cell" id="cell-8">8<br>Thin & Muscular</div>
+            <div class="cell" id="cell-9">9<br>Very Muscular</div>
+        </div>
+    </div>
+
+    ---
+
     <button onclick="generateFIT()">📥 Genera File FIT</button>
+    <button class="secondary" onclick="updatePhysiqueRating()">🔄 Ricalcola Physique Rating</button>
 
     <script>
         // Set default date to today
         document.getElementById('date').valueAsDate = new Date();
 
+        // Esecuzione iniziale del calcolo per popolare il campo con i valori di default
+        window.onload = function() {
+            updatePhysiqueRating();
+        };
+
+
         // FIT file constants
         const FIT_EPOCH = new Date(Date.UTC(1989, 11, 31, 0, 0, 0));
+
+        // Body Fat % thresholds by age and gender (from Tanita official documentation)
+        const BODY_FAT_THRESHOLDS = {
+            M: {
+                // age: [lowMax, highMin] - medium is between these values
+                20: [8, 19],
+                40: [11, 21],
+                60: [13, 25]
+            },
+            F: {
+                20: [21, 33],
+                40: [23, 34],
+                60: [24, 36]
+            }
+        };
+
+        // Muscle Mass Index thresholds by gender (based on FFMI literature, adjusted for muscle mass)
+        // MMI = Muscle Mass (kg) / height(m)²
+        const MUSCLE_INDEX_THRESHOLDS = {
+            M: { lowMax: 17, highMin: 20 },  // Low <17, Medium 17-20, High >20
+            F: { lowMax: 14, highMin: 17 }   // Low <14, Medium 14-17, High >17
+        };
+
+        // Physique Rating Grid (Fat Level x Muscle Level)
+        // Rows (Fat Index): 0=High, 1=Medium, 2=Low
+        // Cols (Muscle Index): 0=Low, 1=Medium, 2=High
+        const PHYSIQUE_GRID = [
+            [1, 2, 3],  // High Fat: Hidden Obese, Obese, Solidly Built
+            [4, 5, 6],  // Medium Fat: Under-exercised, Standard, Standard Muscular
+            [7, 8, 9]   // Low Fat: Thin, Thin & Muscular, Very Muscular
+        ];
+
+        const PHYSIQUE_NAMES = {
+            1: 'Hidden Obese',
+            2: 'Obese',
+            3: 'Solidly Built',
+            4: 'Under-exercised',
+            5: 'Standard',
+            6: 'Standard Muscular',
+            7: 'Thin',
+            8: 'Thin & Muscular',
+            9: 'Very Muscular'
+        };
+
+        function getAgeGroup(age) {
+            if (age < 40) return 20;
+            if (age < 60) return 40;
+            return 60;
+        }
+
+        function classifyBodyFat(bodyFat, gender, age) {
+            const ageGroup = getAgeGroup(age);
+            const thresholds = BODY_FAT_THRESHOLDS[gender][ageGroup];
+            
+            if (bodyFat < thresholds[0]) return { level: 'low', index: 2, label: 'Basso' };
+            if (bodyFat > thresholds[1]) return { level: 'high', index: 0, label: 'Alto' };
+            return { level: 'medium', index: 1, label: 'Medio' };
+        }
+
+        function classifyMuscleIndex(muscleMass, heightCm, gender) {
+            const heightM = heightCm / 100;
+            const mmi = muscleMass / (heightM * heightM);
+            const thresholds = MUSCLE_INDEX_THRESHOLDS[gender];
+            
+            let classification;
+            if (mmi < thresholds.lowMax) {
+                classification = { level: 'low', index: 0, label: 'Basso' };
+            } else if (mmi > thresholds.highMin) {
+                classification = { level: 'high', index: 2, label: 'Alto' };
+            } else {
+                classification = { level: 'medium', index: 1, label: 'Medio' };
+            }
+            
+            classification.mmi = mmi.toFixed(2);
+            return classification;
+        }
+
+        function calculatePhysiqueRating(bodyFat, muscleMass, heightCm, gender, age) {
+            const fatClass = classifyBodyFat(bodyFat, gender, age);
+            const muscleClass = classifyMuscleIndex(muscleMass, heightCm, gender);
+            
+            // L'indice della riga è dato dal livello di grasso (0=High, 1=Medium, 2=Low)
+            // L'indice della colonna è dato dal livello di muscoli (0=Low, 1=Medium, 2=High)
+            const rating = PHYSIQUE_GRID[fatClass.index][muscleClass.index];
+            
+            return {
+                rating: rating,
+                name: PHYSIQUE_NAMES[rating],
+                fatClass: fatClass,
+                muscleClass: muscleClass
+            };
+        }
+
+        function updatePhysiqueRating() {
+            const gender = document.getElementById('gender').value;
+            const age = parseInt(document.getElementById('age').value);
+            const heightCm = parseFloat(document.getElementById('height').value);
+            const bodyFat = parseFloat(document.getElementById('bodyFat').value);
+            const muscleMass = parseFloat(document.getElementById('muscleMass').value);
+            
+            const resultDiv = document.getElementById('physiqueCalcResult');
+            const gridContainer = document.getElementById('physiqueGridContainer');
+            const ratingInput = document.getElementById('physiqueRating');
+            
+            // Clear previous highlights
+            for (let i = 1; i <= 9; i++) {
+                document.getElementById('cell-' + i).classList.remove('active');
+            }
+            
+            // Check if we have all required data
+            if (!gender || isNaN(age) || isNaN(heightCm) || isNaN(bodyFat) || isNaN(muscleMass) || heightCm === 0) {
+                resultDiv.className = 'calc-result warning';
+                resultDiv.classList.remove('hidden');
+                
+                let missing = [];
+                if (!gender) missing.push('Sesso');
+                if (isNaN(age)) missing.push('Età');
+                if (isNaN(heightCm) || heightCm === 0) missing.push('Altezza');
+                if (isNaN(bodyFat)) missing.push('Grasso Corporeo %');
+                if (isNaN(muscleMass)) missing.push('Massa Muscolare');
+                
+                ratingInput.value = ''; // Pulisci l'input se mancano dati
+                resultDiv.innerHTML = `⚠️ Per il calcolo automatico servono: <strong>${missing.join(', ')}</strong><br>
+                    <small>Oppure inserisci manualmente il valore (1-9) se lo conosci dalla bilancia.</small>`;
+                gridContainer.classList.add('hidden');
+                return;
+            }
+            
+            // Calculate
+            const result = calculatePhysiqueRating(bodyFat, muscleMass, heightCm, gender, age);
+            
+            // Update input
+            ratingInput.value = result.rating;
+            
+            // Update result display
+            resultDiv.className = 'calc-result';
+            resultDiv.classList.remove('hidden');
+            resultDiv.innerHTML = `
+                ✅ <strong>Physique Rating: ${result.rating} - ${result.name}</strong><br>
+                <small>
+                    Body Fat ${bodyFat}% → Livello Grasso: ${result.fatClass.label} (per ${gender === 'M' ? 'uomo' : 'donna'} ${age} anni)<br>
+                    Muscle Mass Index: ${result.muscleClass.mmi} kg/m² → Livello Muscoli: ${result.muscleClass.label}
+                </small>
+            `;
+            
+            // Show and highlight grid
+            gridContainer.classList.remove('hidden');
+            document.getElementById('cell-' + result.rating).classList.add('active');
+        }
+
+        // --- FIT file generation functions ---
 
         function fitTimestamp(date) {
             return Math.floor((date.getTime() - FIT_EPOCH.getTime()) / 1000);
@@ -229,6 +555,9 @@
             const bodyWater = parseFloat(document.getElementById('bodyWater').value) || null;
             const visceralFat = parseInt(document.getElementById('visceralFat').value) || null;
             const metabolicAge = parseInt(document.getElementById('metabolicAge').value) || null;
+            // Usa il valore calcolato/inserito
+            const physiqueRating = parseInt(document.getElementById('physiqueRating').value) || null;
+
 
             // Validate required fields
             if (!dateStr || isNaN(weight)) {
@@ -239,29 +568,30 @@
             // Create timestamp
             const [year, month, day] = dateStr.split('-').map(Number);
             const [hours, minutes] = timeStr.split(':').map(Number);
-            const timestamp = new Date(year, month - 1, day, hours, minutes, 0);
+            // Creiamo la data in UTC per evitare problemi di fuso orario con l'epoca FIT
+            const timestamp = new Date(Date.UTC(year, month - 1, day, hours, minutes, 0));
             const fitTs = fitTimestamp(timestamp);
 
             // Build records
             const records = [];
 
-            // FILE ID MESSAGE (Message 0)
+            // FILE ID MESSAGE (Message 0, Def. Id 0)
             records.push(0x40, 0x00, 0x00);
             records.push(0x00, 0x00); // Global message: file_id
             records.push(4); // Number of fields
-            records.push(0, 1, 0);    // type: enum
-            records.push(1, 2, 132);  // manufacturer: uint16
-            records.push(2, 2, 132);  // product: uint16
-            records.push(3, 4, 134);  // serial_number: uint32z
+            records.push(0, 1, 0);    // type: enum (4 = weight)
+            records.push(1, 2, 132);  // manufacturer: uint16 (1 = Garmin)
+            records.push(2, 2, 132);  // product: uint16 (1 = Garmin)
+            records.push(3, 4, 134);  // serial_number: uint32z (55776)
 
-            // File ID data
+            // File ID data (Record Header 0x00)
             records.push(0x00);
             records.push(4); // type = weight
             records.push(1, 0); // manufacturer = Garmin (little endian)
             records.push(1, 0); // product
-            records.push(0x39, 0x30, 0x00, 0x00); // serial_number
+            records.push(0x39, 0x30, 0x00, 0x00); // serial_number (55776)
 
-            // WEIGHT SCALE MESSAGE (Message 30)
+            // WEIGHT SCALE MESSAGE (Message 30, Def. Id 1)
             // Count fields
             let numFields = 2; // timestamp + weight always
             if (bodyFat !== null) numFields++;
@@ -270,23 +600,28 @@
             if (muscleMass !== null) numFields++;
             if (metabolicAge !== null) numFields++;
             if (visceralFat !== null) numFields++;
+            if (physiqueRating !== null) numFields++;
 
             records.push(0x41, 0x00, 0x00);
             records.push(30, 0); // Global message: weight_scale (little endian)
             records.push(numFields);
 
             // Field definitions
-            records.push(253, 4, 134); // timestamp
-            records.push(0, 2, 132);   // weight
+            records.push(253, 4, 134); // 253: timestamp, Size: 4, Type: uint32
+            records.push(0, 2, 132);   // 0: weight, Size: 2, Type: uint16, Scale: 100
 
-            if (bodyFat !== null) records.push(1, 2, 132);      // percent_fat
-            if (bodyWater !== null) records.push(2, 2, 132);    // percent_hydration
-            if (boneMass !== null) records.push(4, 2, 132);     // bone_mass
-            if (muscleMass !== null) records.push(5, 2, 132);   // muscle_mass
-            if (metabolicAge !== null) records.push(10, 1, 2);  // metabolic_age
-            if (visceralFat !== null) records.push(11, 1, 2);   // visceral_fat_rating
+            if (bodyFat !== null) records.push(1, 2, 132);         // 1: percent_fat, Size: 2, Type: uint16, Scale: 100
+            if (bodyWater !== null) records.push(2, 2, 132);       // 2: percent_hydration, Size: 2, Type: uint16, Scale: 100
+            if (boneMass !== null) records.push(4, 2, 132);        // 4: bone_mass, Size: 2, Type: uint16, Scale: 100
+            if (muscleMass !== null) records.push(5, 2, 132);      // 5: muscle_mass, Size: 2, Type: uint16, Scale: 100
+            
+            // FIX: Uso il tipo 0 (enum) per il physique_rating (compatibile Garmin)
+            if (physiqueRating !== null) records.push(8, 1, 0);    // 8: physique_rating, Size: 1, Type: enum
+            
+            if (metabolicAge !== null) records.push(10, 1, 2);     // 10: metabolic_age, Size: 1, Type: uint8
+            if (visceralFat !== null) records.push(11, 1, 2);      // 11: visceral_fat_rating, Size: 1, Type: uint8
 
-            // Data message
+            // Data message (Record Header 0x01)
             records.push(0x01);
             
             // Timestamp (4 bytes, little endian)
@@ -328,12 +663,17 @@
                 records.push((muscleVal >> 8) & 0xFF);
             }
 
-            // Metabolic age
+            // Physique rating (1 byte)
+            if (physiqueRating !== null) {
+                records.push(physiqueRating & 0xFF);
+            }
+
+            // Metabolic age (1 byte)
             if (metabolicAge !== null) {
                 records.push(metabolicAge & 0xFF);
             }
 
-            // Visceral fat rating
+            // Visceral fat rating (1 byte)
             if (visceralFat !== null) {
                 records.push(visceralFat & 0xFF);
             }
@@ -343,8 +683,8 @@
 
             // Create header (14 bytes)
             const header = [];
-            header.push(14);       // Header size
-            header.push(20);       // Protocol version (2.0)
+            header.push(14);       // Header size (14 for CRC)
+            header.push(20);       // Protocol version (2.0)
             header.push(0x3E, 0x08); // Profile version (21.10, little endian)
             header.push(dataSize & 0xFF);
             header.push((dataSize >> 8) & 0xFF);
@@ -373,14 +713,28 @@
             
             // Format filename
             const dateFormatted = dateStr.replace(/-/g, '');
-            a.download = `weight_${dateFormatted}.fit`;
+            const timeFormatted = timeStr.replace(':', '');
+            a.download = `weight_${dateFormatted}_${timeFormatted}.fit`;
             
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
 
-            alert(`File generato: weight_${dateFormatted}.fit\n\nImportalo su Garmin Connect!`);
+            // Build summary
+            let summary = `File generato: ${a.download}\n\nDati inclusi:\n`;
+            summary += `• Data e Ora: ${dateStr} ${timeStr}\n`;
+            summary += `• Peso: ${weight} kg\n`;
+            if (bodyFat !== null) summary += `• Grasso Corporeo: ${bodyFat}%\n`;
+            if (muscleMass !== null) summary += `• Massa Muscolare: ${muscleMass} kg\n`;
+            if (boneMass !== null) summary += `• Massa Ossea: ${boneMass} kg\n`;
+            if (bodyWater !== null) summary += `• Acqua Corporea: ${bodyWater}%\n`;
+            if (visceralFat !== null) summary += `• Grasso Viscerale: ${visceralFat}\n`;
+            if (metabolicAge !== null) summary += `• Età Metabolica: ${metabolicAge} anni\n`;
+            if (physiqueRating !== null) summary += `• Physique Rating: ${physiqueRating} (${PHYSIQUE_NAMES[physiqueRating]})\n`;
+            summary += `\nImportalo su Garmin Connect!`;
+
+            alert(summary);
         }
     </script>
 </body>
