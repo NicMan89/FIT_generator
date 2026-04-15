@@ -372,46 +372,41 @@
         const FIT_EPOCH = new Date(Date.UTC(1989, 11, 31, 0, 0, 0));
 
         // Body Fat % thresholds by age and gender (from Tanita official documentation)
+        // ============================================================
+        // Physique Rating v3 - Soglie basate su ACE/ACSM + letteratura
+        // Sostituisci nel tuo HTML da "BODY_FAT_THRESHOLDS" fino a
+        // "classifyMuscleIndex" incluso.
+        // ============================================================
+        
+        // Body Fat % thresholds - ACE/ACSM age & gender specific
+        // Format: age_group: [lowMax, highMin]
+        // Low = <lowMax (Athletes/Fitness) | Medium = lowMax..highMin (Average) | High = >highMin (Obese)
         const BODY_FAT_THRESHOLDS = {
             M: {
-                // age: [lowMax, highMin] - medium is between these values
-                20: [8, 19],
-                40: [11, 21],
-                60: [13, 25]
+                20: [14, 24],  // 20-39
+                40: [17, 27],  // 40-59
+                60: [19, 28]   // 60+
             },
             F: {
-                20: [21, 33],
-                40: [23, 34],
-                60: [24, 36]
+                20: [21, 30],
+                40: [24, 33],
+                60: [25, 35]
             }
         };
 
-        // Muscle Mass Index thresholds by gender (based on FFMI literature, adjusted for muscle mass)
-        // MMI = Muscle Mass (kg) / height(m)²
+        // Muscle Mass Index (kg/m²) - TOTAL body muscle mass (not just SMI)
+        // Adapted from literature for BIA-total muscle mass, age-dependent
         const MUSCLE_INDEX_THRESHOLDS = {
-            M: { lowMax: 17, highMin: 20 },  // Low <17, Medium 17-20, High >20
-            F: { lowMax: 14, highMin: 17 }   // Low <14, Medium 14-17, High >17
-        };
-
-        // Physique Rating Grid (Fat Level x Muscle Level)
-        // Rows (Fat Index): 0=High, 1=Medium, 2=Low
-        // Cols (Muscle Index): 0=Low, 1=Medium, 2=High
-        const PHYSIQUE_GRID = [
-            [1, 2, 3],  // High Fat: Hidden Obese, Obese, Solidly Built
-            [4, 5, 6],  // Medium Fat: Under-exercised, Standard, Standard Muscular
-            [7, 8, 9]   // Low Fat: Thin, Thin & Muscular, Very Muscular
-        ];
-
-        const PHYSIQUE_NAMES = {
-            1: 'Hidden Obese',
-            2: 'Obese',
-            3: 'Solidly Built',
-            4: 'Under-exercised',
-            5: 'Standard',
-            6: 'Standard Muscular',
-            7: 'Thin',
-            8: 'Thin & Muscular',
-            9: 'Very Muscular'
+            M: {
+                20: { lowMax: 18,   highMin: 21   },  // 18-39
+                40: { lowMax: 17,   highMin: 20   },  // 40-59
+                60: { lowMax: 16,   highMin: 19   }   // 60+
+            },
+            F: {
+                20: { lowMax: 14.5, highMin: 17   },
+                40: { lowMax: 13.5, highMin: 16   },
+                60: { lowMax: 12.5, highMin: 15   }
+            }
         };
 
         function getAgeGroup(age) {
@@ -423,33 +418,35 @@
         function classifyBodyFat(bodyFat, gender, age) {
             const ageGroup = getAgeGroup(age);
             const thresholds = BODY_FAT_THRESHOLDS[gender][ageGroup];
-            
-            if (bodyFat < thresholds[0]) return { level: 'low', index: 2, label: 'Basso' };
-            if (bodyFat > thresholds[1]) return { level: 'high', index: 0, label: 'Alto' };
-            return { level: 'medium', index: 1, label: 'Medio' };
+    
+            if (bodyFat < thresholds[0]) return { level: 'low',    index: 2, label: 'Basso'  };
+            if (bodyFat > thresholds[1]) return { level: 'high',   index: 0, label: 'Alto'   };
+            return                              { level: 'medium', index: 1, label: 'Medio'  };
         }
 
-        function classifyMuscleIndex(muscleMass, heightCm, gender) {
+        function classifyMuscleIndex(muscleMass, heightCm, gender, age) {
             const heightM = heightCm / 100;
             const mmi = muscleMass / (heightM * heightM);
-            const thresholds = MUSCLE_INDEX_THRESHOLDS[gender];
-            
+            const ageGroup = getAgeGroup(age);
+            const thresholds = MUSCLE_INDEX_THRESHOLDS[gender][ageGroup];
+    
             let classification;
             if (mmi < thresholds.lowMax) {
-                classification = { level: 'low', index: 0, label: 'Basso' };
+                classification = { level: 'low',    index: 0, label: 'Basso' };
             } else if (mmi > thresholds.highMin) {
-                classification = { level: 'high', index: 2, label: 'Alto' };
+                classification = { level: 'high',   index: 2, label: 'Alto'  };
             } else {
                 classification = { level: 'medium', index: 1, label: 'Medio' };
             }
-            
+    
             classification.mmi = mmi.toFixed(2);
+            classification.thresholds = thresholds;
             return classification;
         }
 
         function calculatePhysiqueRating(bodyFat, muscleMass, heightCm, gender, age) {
             const fatClass = classifyBodyFat(bodyFat, gender, age);
-            const muscleClass = classifyMuscleIndex(muscleMass, heightCm, gender);
+            const muscleClass = classifyMuscleIndex(muscleMass, heightCm, gender, age);
             
             // L'indice della riga è dato dal livello di grasso (0=High, 1=Medium, 2=Low)
             // L'indice della colonna è dato dal livello di muscoli (0=Low, 1=Medium, 2=High)
